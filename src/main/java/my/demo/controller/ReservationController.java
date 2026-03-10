@@ -1,20 +1,9 @@
 package my.demo.controller;
 
-import java.net.URI;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.PathVariable;
-import io.micronaut.http.annotation.Post;
-import io.micronaut.http.annotation.QueryValue;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
+import my.demo.api.ReservationApi;
 import my.demo.dto.AvailabilityResponse;
 import my.demo.dto.CreateReservationRequest;
 import my.demo.dto.ReservationResponse;
@@ -22,9 +11,14 @@ import my.demo.model.CarType;
 import my.demo.model.Reservation;
 import my.demo.service.CarRentalService;
 
+import java.net.URI;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
 @Slf4j
-@Controller("/reservations")
-public class ReservationController {
+@Controller(ReservationApi.BASE_PATH)
+public class ReservationController implements ReservationApi {
 
     private final CarRentalService carRentalService;
 
@@ -32,9 +26,7 @@ public class ReservationController {
         this.carRentalService = carRentalService;
     }
 
-    @Post
-    public HttpResponse<ReservationResponse> createReservation(
-        @Body @Valid CreateReservationRequest request)
+    public HttpResponse<ReservationResponse> createReservation(CreateReservationRequest request)
     {
         log.debug("Creating reservation: carType={}, start={}, days={}",
             request.carType(),
@@ -60,11 +52,10 @@ public class ReservationController {
                 headers -> headers.location(location));
     }
 
-    @Get("/availability")
     public AvailabilityResponse checkAvailability(
-        @QueryValue @NotNull CarType carType,
-        @QueryValue @NotNull Instant start,
-        @QueryValue @Positive int numOfDays)
+        CarType carType,
+        Instant start,
+        int numOfDays)
     {
         boolean available = carRentalService.isAvailable(carType, start, numOfDays);
 
@@ -76,19 +67,17 @@ public class ReservationController {
         );
     }
 
-    @Get
     public List<ReservationResponse> listReservations() {
         return carRentalService.getAllReservations().stream()
             .map(ReservationResponse::from)
             .toList();
     }
 
-    @Get("/{id}")
-    public ReservationResponse getReservation(@PathVariable UUID id) {
+    public ReservationResponse getReservation(UUID id) {
         return ReservationResponse.from(carRentalService.getReservation(id));
     }
 
     private URI reservationLocation(UUID id) {
-        return URI.create("/reservations/" + id);
+        return URI.create(ReservationApi.BASE_PATH + "/" + id);
     }
 }
